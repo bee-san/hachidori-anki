@@ -8,7 +8,7 @@ browser with your dictionaries hosts, and your other browsers link to it.
 
 ## Install
 
-1. Download [hachidori-relay.ankiaddon v0.0.2](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.2/hachidori-relay.ankiaddon).
+1. Download [hachidori-relay.ankiaddon v0.0.3](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.3/hachidori-relay.ankiaddon).
 2. Double-click it, or in Anki choose **Tools → Add-ons → Install from file…**.
 3. Restart Anki and keep it open. Hachidori's **Settings → Sharing** will show
    **Sharing through Anki** once the host has dictionaries.
@@ -34,6 +34,12 @@ GameSentenceMiner. Use the version offered by that extension's download button.
 
 Version 0.0.2 fixes idle listener timeouts on Python 3.9, where
 `socket.timeout` is not yet an alias of the built-in `TimeoutError`.
+
+Version 0.0.3 carries Hachidori's slow-client isolation fix from
+[`63d380f`](https://github.com/bee-san/hachidori/commit/63d380feac53c3c28b9f60f341eccd73a399406e).
+Healthy sockets keep direct sends; a backed-up socket drains its own ordered
+queue without holding the relay lock. Other browsers, pings and disconnects
+remain responsive while a client stops reading.
 
 These GitHub installs are updated by installing a new `.ankiaddon` file and
 restarting Anki. The stable `hachidori-relay` package ID updates the existing
@@ -63,7 +69,8 @@ HACHIDORI_RELAY_SERVER=dist/unpacked/server.py node --test test/sharing-relay.te
 The package tests verify root-level files, package identity, version, commit
 timestamp, checksum, reproducibility, and exclusion of caches and user config.
 The socket tests run the packaged relay and cover origins, host ownership,
-idle connections, bidirectional text, broadcast, pings, disconnections, and enabling and disabling
+idle connections, bidirectional text, broadcast, pings, disconnections, stalled
+peers with ordered large UTF-8 replies, and enabling and disabling
 network sharing. Network cases require a non-loopback address; the suite reports
 when the machine has none.
 
