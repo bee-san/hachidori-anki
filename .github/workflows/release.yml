@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.9'
+      - name: Build the tagged version
+        run: python3 scripts/package-addon.py --version "${GITHUB_REF_NAME#v}"
+      - name: Publish the add-on and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          dist/hachidori-relay.ankiaddon dist/hachidori-relay.ankiaddon.sha256
+          --verify-tag --title "Hachidori Relay $GITHUB_REF_NAME"
+          --notes 'Download hachidori-relay.ankiaddon below. In Anki, choose Tools → Add-ons → Install from file…, select it, and restart Anki. See the README for sharing setup, compatibility, and checksum verification.'

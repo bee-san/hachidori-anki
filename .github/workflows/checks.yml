@@ -1,0 +1,32 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '22'
+      - name: Test packaging
+        run: python3 -m unittest discover -s test -p 'test_*.py'
+      - name: Build and unpack the installable add-on
+        run: |
+          python3 scripts/package-addon.py
+          python3 -m zipfile -e dist/hachidori-relay.ankiaddon dist/unpacked
+      - name: Test the packaged relay over real sockets
+        run: node --test test/sharing-relay.test.mjs
+        env:
+          HACHIDORI_RELAY_SERVER: dist/unpacked/server.py
