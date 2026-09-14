@@ -126,7 +126,7 @@ class Listener:
             return None
         try:
             conn, _ = sock.accept()
-        except TimeoutError:
+        except socket.timeout:
             return None
         except OSError:
             if sock is not self._sock:
