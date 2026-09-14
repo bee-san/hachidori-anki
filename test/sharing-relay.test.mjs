@@ -137,6 +137,20 @@ async function server(t) {
 
 const listening = (port) => ({ kind: "listening", port });
 
+test("the relay survives idle accept timeouts before and after a host connects", async (t) => {
+  const relay = await startAnkiRelayServer();
+  t.after(() => relay.close());
+  await new Promise(resolveWait => setTimeout(resolveWait, 1500));
+  assert.equal(relay.exitCode, null, "an idle listener must stay alive");
+  const host = await connectClient(t, relay.port, "/host");
+  assert.deepEqual(await host.json(), listening(relay.port));
+  await new Promise(resolveWait => setTimeout(resolveWait, 1500));
+  assert.equal(relay.exitCode, null, "an idle host must not shut the listener down");
+  const client = await connectClient(t, relay.port, "/link");
+  assert.equal(client.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, EXTENSION_ORIGIN);
+});
+
 test("clients are refused until a host connects, and a second host is turned away", async (t) => {
   const { port } = await server(t);
   assert.equal((await connectClient(t, port, "/link")).status, 503);

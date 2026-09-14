@@ -8,7 +8,7 @@ browser with your dictionaries hosts, and your other browsers link to it.
 
 ## Install
 
-1. Download [hachidori-relay.ankiaddon v0.0.1](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.1/hachidori-relay.ankiaddon).
+1. Download [hachidori-relay.ankiaddon v0.0.2](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.2/hachidori-relay.ankiaddon).
 2. Double-click it, or in Anki choose **Tools → Add-ons → Install from file…**.
 3. Restart Anki and keep it open. Hachidori's **Settings → Sharing** will show
    **Sharing through Anki** once the host has dictionaries.
@@ -31,6 +31,9 @@ contains the relay extracted from Hachidori commit
 [`265c278`](https://github.com/bee-san/hachidori/tree/265c278c83483edafa50d931e1822a0a022138d2).
 The extension pins a compatible release URL, including when vendored by
 GameSentenceMiner. Use the version offered by that extension's download button.
+
+Version 0.0.2 fixes idle listener timeouts on Python 3.9, where
+`socket.timeout` is not yet an alias of the built-in `TimeoutError`.
 
 These GitHub installs are updated by installing a new `.ankiaddon` file and
 restarting Anki. The stable `hachidori-relay` package ID updates the existing
@@ -60,7 +63,7 @@ HACHIDORI_RELAY_SERVER=dist/unpacked/server.py node --test test/sharing-relay.te
 The package tests verify root-level files, package identity, version, commit
 timestamp, checksum, reproducibility, and exclusion of caches and user config.
 The socket tests run the packaged relay and cover origins, host ownership,
-bidirectional text, broadcast, pings, disconnections, and enabling and disabling
+idle connections, bidirectional text, broadcast, pings, disconnections, and enabling and disabling
 network sharing. Network cases require a non-loopback address; the suite reports
 when the machine has none.
 
