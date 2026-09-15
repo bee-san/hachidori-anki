@@ -33,6 +33,7 @@ DEFAULT_PORT = 8771
 HOST_PATH = "/host"
 LINK_PATH = "/link"
 EXTENSION_ORIGIN_PREFIX = "chrome-extension://"
+HOSHIDICTS_ORIGIN = "hoshi://hoshidicts"
 PING_SECONDS = 20
 WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 CONTINUATION, TEXT, CLOSE, PING, PONG = 0x0, 0x1, 0x8, 0x9, 0xA
@@ -415,9 +416,14 @@ def refusal(relay, path, headers, peer):
     """The HTTP status that turns a handshake away, or None to accept it."""
     if path not in (HOST_PATH, LINK_PATH):
         return "404 Not Found"
-    # The one rule: browser extensions may connect, web pages may not. The host
-    # is the Hachidori on this computer; other computers only link.
-    if not headers.get("origin", "").startswith(EXTENSION_ORIGIN_PREFIX) or (path == HOST_PATH and not is_loopback(peer)):
+    # Hachidori extensions may use either endpoint. Native Hoshidicts apps share
+    # one exact ecosystem origin and may only link; ordinary web pages may not.
+    # The host is the Hachidori on this computer; other computers only link.
+    origin = headers.get("origin", "")
+    extension = origin.startswith(EXTENSION_ORIGIN_PREFIX)
+    if not extension and (path != LINK_PATH or origin != HOSHIDICTS_ORIGIN):
+        return "403 Forbidden"
+    if path == HOST_PATH and not is_loopback(peer):
         return "403 Forbidden"
     if "sec-websocket-key" not in headers:
         return "400 Bad Request"

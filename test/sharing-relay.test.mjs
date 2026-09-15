@@ -8,6 +8,7 @@ import test from "node:test";
 import { startAnkiRelayServer } from "./anki-relay-server.mjs";
 
 const EXTENSION_ORIGIN = "chrome-extension://hachidorirelaytestextensionid";
+const HOSHIDICTS_ORIGIN = "hoshi://hoshidicts";
 
 function queue() {
   const items = [];
@@ -176,6 +177,21 @@ test("clients are refused until a host connects, and a second host is turned awa
   assert.equal(client.status, 101);
   const opened = await untilKind(host, "client-open");
   assert.equal(opened.origin, EXTENSION_ORIGIN);
+});
+
+test("the Hoshidicts app origin is admitted only on the client endpoint", async (t) => {
+  const { port } = await server(t);
+  assert.equal((await connectClient(t, port, "/link", HOSHIDICTS_ORIGIN)).status, 503, "host availability still gates native clients");
+  assert.equal((await connectClient(t, port, "/host", HOSHIDICTS_ORIGIN)).status, 403, "native apps cannot become hosts");
+  assert.equal((await connectClient(t, port, "/host", "hoshi://hoshidicts.evil")).status, 403);
+  const host = await connectClient(t, port, "/host");
+  await host.json();
+  for (const origin of ["https://hoshidicts", "http://hoshidicts", "app://mangatan", "hoshi://mangatan", "hoshi://hoshidicts.evil", null]) {
+    assert.equal((await connectClient(t, port, "/link", origin)).status, 403, `${origin} must not enter the native-client allowlist`);
+  }
+  const client = await connectClient(t, port, "/link", HOSHIDICTS_ORIGIN);
+  assert.equal(client.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, HOSHIDICTS_ORIGIN);
 });
 
 test("text crosses the relay whole in both directions, with pings on both sides", async (t) => {
