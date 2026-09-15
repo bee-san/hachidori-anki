@@ -20,6 +20,11 @@ and enter one of the listed addresses in the other browser. This exposes the
 relay to that network until the host turns sharing off or disconnects. Use it
 on a trusted home network or Tailscale; there is no password or token.
 
+Native Hoshidicts ecosystem apps link with the shared WebSocket Origin
+`hoshi://hoshidicts`. This exact scheme/host origin is accepted only on `/link`;
+`/host` remains limited to Hachidori Chrome extensions on the same computer.
+Ordinary web-page origins remain refused.
+
 See Hachidori's [sharing guide](https://github.com/bee-san/hachidori/blob/main/docs/sharing.md)
 for the complete setup. The default port is 8771; change it in both Anki's
 add-on Config and Hachidori's Sharing → Advanced, then restart Anki.
