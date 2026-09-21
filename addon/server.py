@@ -8,9 +8,11 @@ connects to /host, linked browsers connect to /link, and the relay forwards
 text frames between them without reading them. It listens on this computer
 only until the host asks for the network, so that browsers on the person's
 other computers can link as well. SharingRelay is that logic; the rest is the
-WebSocket server around it, on the standard library alone.
+WebSocket server around it, on the standard library alone. api.py adds the
+Yomitan-compatible HTTP API and dictionary downloads beside it; that listener
+follows the same network switch.
 
-Run it without Anki: python3 addon/server.py --port 8771
+Run it without Anki: python3 addon/server.py --port 8771 --api-port 19633
 """
 from __future__ import annotations
 
@@ -28,6 +30,12 @@ import threading
 import time
 from collections import deque, namedtuple
 from contextlib import suppress
+
+try:
+    from .api import ApiServer
+except ImportError:
+    # Run as a script (tests, development) rather than as the add-on package.
+    from api import ApiServer
 
 DEFAULT_PORT = 8771
 HOST_PATH = "/host"
@@ -149,11 +157,20 @@ class SharingRelay:
 
     def __init__(self, listener):
         self._listener = listener
+        self._network_listener = None
         self._lock = threading.Lock()
         self._host = None
         self._clients = {}
         self._next_client_id = 0
         self.closed = False
+
+    def follow_network(self, callback):
+        """Registers another listener (the HTTP API) that rebinds with the network switch.
+
+        The callback receives the new state and answers an error text, or None.
+        """
+        with self._lock:
+            self._network_listener = callback
 
     @property
     def has_host(self):
@@ -168,12 +185,25 @@ class SharingRelay:
                 self._listener.open(enabled)
             except OSError as error:
                 self._listener.open(False)
+                self._follow_network(False)
                 return {"kind": "network", "enabled": False, "addresses": [], "error": str(error)}
         if not enabled:
             for client in self._clients.values():
                 if not is_loopback(client.address):
                     client.connection.close()
-        return {"kind": "network", "enabled": enabled, "addresses": local_addresses() if enabled else []}
+        reply = {"kind": "network", "enabled": enabled, "addresses": local_addresses() if enabled else []}
+        error = self._follow_network(enabled)
+        if error is not None:
+            reply["error"] = error
+        return reply
+
+    def _follow_network(self, enabled):
+        if self._network_listener is None:
+            return None
+        try:
+            return self._network_listener(enabled)
+        except OSError as error:
+            return str(error)
 
     def _to_host(self, frame):
         if self._host is not None:
@@ -493,13 +523,34 @@ def ping_forever(relay, seconds):
         relay.ping()
 
 
-def serve(port, ping_seconds=PING_SECONDS, announce=None):
-    """Relays on 127.0.0.1:port until the process ends. Raises OSError when the port cannot be bound."""
+def serve(port, ping_seconds=PING_SECONDS, announce=None, api_port=None, announce_api=None, api_timeout_seconds=None):
+    """Relays on 127.0.0.1:port until the process ends. Raises OSError when the port cannot be bound.
+
+    With api_port, the Yomitan-compatible HTTP API listens beside the relay and
+    follows its network switch. announce_api(port, error) reports the bound API
+    port, or the error when that port could not be bound; the relay then runs
+    without the API rather than not at all. api_timeout_seconds shortens the
+    API's host timeouts (tests).
+    """
     listener = Listener(port)
     listener.open(False)
     relay = SharingRelay(listener)
     if announce is not None:
         announce(listener.port)
+    api = None
+    if api_port is not None:
+        timeouts = {} if api_timeout_seconds is None else {"lookup_timeout": api_timeout_seconds, "chunk_timeout": api_timeout_seconds}
+        api = ApiServer(relay, api_port, **timeouts)
+        try:
+            api.open(False)
+        except OSError as error:
+            api = None
+            if announce_api is not None:
+                announce_api(None, error)
+        else:
+            relay.follow_network(api.set_network)
+            if announce_api is not None:
+                announce_api(api.port, None)
     threading.Thread(target=ping_forever, args=(relay, ping_seconds), name="hachidori-relay-ping", daemon=True).start()
     try:
         while True:
@@ -509,14 +560,23 @@ def serve(port, ping_seconds=PING_SECONDS, announce=None):
     finally:
         relay.closed = True
         listener.close()
+        if api is not None:
+            api.close()
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the Hachidori sharing relay without Anki.")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="port to listen on; 0 picks a free one and prints it")
+    parser.add_argument("--api-port", type=int, default=None, help="also serve the Yomitan-compatible HTTP API on this port; 0 picks a free one; omitted disables it")
     parser.add_argument("--ping-seconds", type=float, default=PING_SECONDS, help="seconds between the keep-alive pings")
+    parser.add_argument("--api-timeout-seconds", type=float, default=None, help="how long the API waits for the sharing Hachidori (tests); default 30 s for lookups, 60 s for download chunks")
     args = parser.parse_args(argv)
-    serve(args.port, args.ping_seconds, announce=lambda port: print(f"listening {port}", flush=True))
+
+    def announce_api(port, error):
+        print(f"api {port}" if error is None else f"api-failed {error}", flush=True)
+
+    serve(args.port, args.ping_seconds, announce=lambda port: print(f"listening {port}", flush=True), api_port=args.api_port,
+          announce_api=announce_api, api_timeout_seconds=args.api_timeout_seconds)
 
 
 if __name__ == "__main__":

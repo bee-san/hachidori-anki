@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FILE_NAME = "hachidori-relay.ankiaddon"
-ADDON_FILES = ("__init__.py", "config.json", "config.md", "manifest.json", "server.py")
+ADDON_FILES = ("__init__.py", "api.py", "config.json", "config.md", "manifest.json", "server.py")
 
 
 def build_archive(root, modified, expected_version=None):

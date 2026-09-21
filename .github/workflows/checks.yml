@@ -26,7 +26,7 @@ jobs:
         run: |
           python3 scripts/package-addon.py
           python3 -m zipfile -e dist/hachidori-relay.ankiaddon dist/unpacked
-      - name: Test the packaged relay over real sockets
-        run: node --test test/sharing-relay.test.mjs
+      - name: Test the packaged relay and its HTTP API over real sockets
+        run: node --test test/sharing-relay.test.mjs test/api.test.mjs
         env:
           HACHIDORI_RELAY_SERVER: dist/unpacked/server.py

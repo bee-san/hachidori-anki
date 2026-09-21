@@ -10,8 +10,9 @@ Every run creates a fresh temporary Anki base with only this add-on installed,
 starts a separate Anki instance on it, and connects to the relay over raw
 WebSockets: a host with an extension Origin, which then asks for the network
 and sees a browser link over this computer's own network address, and a web
-Origin that must be refused. The live Anki profile, its add-ons and
-AnkiConnect are never opened.
+Origin that must be refused. It also POSTs /serverVersion to the Yomitan API
+port, which needs no host. The live Anki profile, its add-ons and AnkiConnect
+are never opened.
 """
 import argparse
 import base64
@@ -22,12 +23,14 @@ import socket
 import tempfile
 import threading
 import time
+import urllib.request
 import zipfile
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('archive', type=Path, help='the packaged .ankiaddon to install in the temporary profile')
 parser.add_argument('--port', type=int, default=18772, help='a test-only port keeps a running relay out of the way')
+parser.add_argument('--api-port', type=int, default=19634, help='a test-only port for the Yomitan API, beside a running Yomitan')
 args = parser.parse_args()
 
 base = Path(tempfile.mkdtemp(prefix='hachidori-anki-relay-'))
@@ -37,7 +40,7 @@ with zipfile.ZipFile(args.archive) as archive:
     assert manifest['package'] == addon.name
     archive.extractall(addon)
 # Anki keeps a user's settings next to the add-on; this is what Tools → Add-ons → Config writes.
-(addon / 'meta.json').write_text(json.dumps({'config': {'port': args.port}}))
+(addon / 'meta.json').write_text(json.dumps({'config': {'port': args.port, 'yomitan_api_port': args.api_port}}))
 os.environ.update(
     ANKI_SINGLE_INSTANCE_KEY=base.name,
     QT_QPA_PLATFORM='offscreen',
@@ -91,7 +94,7 @@ def send_text(sock, text):
     sock.sendall(bytes([0x81, 0x80 | len(payload)]) + mask + masked)
 
 
-result = {'base': str(base), 'port': args.port, 'version': manifest['human_version'], 'errors': []}
+result = {'base': str(base), 'port': args.port, 'apiPort': args.api_port, 'version': manifest['human_version'], 'errors': []}
 
 
 def give_up():
@@ -127,6 +130,20 @@ def check():
         page, result['pageStatus'], _ = handshake('/host', 'https://example.com')
         page.close()
         host.close()
+        # The Yomitan API answers /serverVersion from the add-on itself, before any Hachidori shares.
+        # Losing the host has just moved the API back to this computer; a connection that lands in
+        # the old listener's backlog while it is swapped is reset, so retry for a moment.
+        request = urllib.request.Request(f'http://127.0.0.1:{args.api_port}/serverVersion', method='POST')
+        deadline = time.monotonic() + 5
+        while True:
+            try:
+                with urllib.request.urlopen(request, timeout=10) as response:
+                    result['serverVersion'] = json.loads(response.read())
+                break
+            except OSError:
+                if time.monotonic() > deadline:
+                    raise
+                time.sleep(0.2)
     except Exception as error:  # reported below; Anki must still quit
         result['errors'].append(repr(error))
     app.quit()
@@ -138,6 +155,9 @@ try:
     from aqt.profiles import ProfileManager
     from aqt.qt import QTimer
 
+    # Anki 24.11 derives its single-instance key from the user name alone and ignores
+    # ANKI_SINGLE_INSTANCE_KEY; without this an Anki already open would take over the run.
+    aqt.AnkiApp.KEY = base.name
     anki.lang.set_lang('en_US')
     pm = ProfileManager(str(base))
     pm.setupMeta()
@@ -164,6 +184,7 @@ result['success'] = (
         and result.get('clientOpen', {}).get('kind') == 'client-open'
         and result['clientOpen'].get('address') == result['network']['addresses'][0]['address']))
     and result.get('pageStatus') == 403
+    and result.get('serverVersion') == {'version': manifest['human_version']}
 )
 print(json.dumps(result, indent=2), flush=True)
 # Qt's teardown of a never-unloaded Anki crashes on exit; it is not what this check measures.

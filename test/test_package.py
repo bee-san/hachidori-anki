@@ -27,7 +27,11 @@ class PackageTest(unittest.TestCase):
             self.assertEqual(data, build_archive(root, 1_757_000_000))
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
                 self.assertIsNone(archive.testzip())
-                self.assertEqual(archive.namelist(), ["LICENSE", "__init__.py", "config.json", "config.md", "manifest.json", "server.py"])
+                self.assertEqual(archive.namelist(), ["LICENSE", "__init__.py", "api.py", "config.json", "config.md", "manifest.json", "server.py"])
+                self.assertNotIn("meta.json", archive.namelist(), "user configuration never ships")
+                config = json.loads(archive.read("config.json"))
+                self.assertEqual(config, {"port": 8771, "yomitan_api_port": 19633})
+                self.assertIn("yomitan_api_port", archive.read("config.md").decode("utf-8"))
                 manifest = json.loads(archive.read("manifest.json"))
                 self.assertEqual(manifest, {
                     **json.loads((root / "addon" / "manifest.json").read_text()),

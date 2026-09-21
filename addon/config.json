@@ -1,3 +1,4 @@
 {
-  "port": 8771
+  "port": 8771,
+  "yomitan_api_port": 19633
 }
