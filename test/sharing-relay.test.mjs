@@ -8,6 +8,7 @@ import test from "node:test";
 import { startAnkiRelayServer } from "./anki-relay-server.mjs";
 
 const EXTENSION_ORIGIN = "chrome-extension://hachidorirelaytestextensionid";
+const FIREFOX_ORIGIN = "moz-extension://2f9c1b4e-3f4d-4a1e-9c7b-0f6a5d4c3b2a";
 const HOSHIDICTS_ORIGIN = "hoshi://hoshidicts";
 
 function queue() {
@@ -177,6 +178,22 @@ test("clients are refused until a host connects, and a second host is turned awa
   assert.equal(client.status, 101);
   const opened = await untilKind(host, "client-open");
   assert.equal(opened.origin, EXTENSION_ORIGIN);
+});
+
+test("a Firefox Hachidori may host on this computer and link like a Chrome one", async (t) => {
+  const { port } = await server(t);
+  assert.equal((await connectClient(t, port, "/link", FIREFOX_ORIGIN)).status, 503, "host availability gates Firefox clients too");
+  assert.equal((await connectClient(t, port, "/host", "moz-extension:evil")).status, 403);
+  assert.equal((await connectClient(t, port, "/host", "https://moz-extension.example")).status, 403);
+  const host = await connectClient(t, port, "/host", FIREFOX_ORIGIN);
+  assert.equal(host.status, 101);
+  assert.deepEqual(await host.json(), listening(port));
+  const chromeClient = await connectClient(t, port, "/link");
+  assert.equal(chromeClient.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, EXTENSION_ORIGIN);
+  const firefoxClient = await connectClient(t, port, "/link", FIREFOX_ORIGIN);
+  assert.equal(firefoxClient.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, FIREFOX_ORIGIN);
 });
 
 test("the Hoshidicts app origin is admitted only on the client endpoint", async (t) => {

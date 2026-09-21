@@ -22,7 +22,8 @@ on a trusted home network or Tailscale; there is no password or token.
 
 Native Hoshidicts ecosystem apps link with the shared WebSocket Origin
 `hoshi://hoshidicts`. This exact scheme/host origin is accepted only on `/link`;
-`/host` remains limited to Hachidori Chrome extensions on the same computer.
+`/host` remains limited to Hachidori browser extensions (Chrome or Firefox) on
+the same computer.
 Ordinary web-page origins remain refused.
 
 See Hachidori's [sharing guide](https://github.com/bee-san/hachidori/blob/main/docs/sharing.md)
