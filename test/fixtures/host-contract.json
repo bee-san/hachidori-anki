@@ -61,6 +61,25 @@
       ]
     }
   },
+  "hd_api_anki_card_formats": {
+    "request": { "profileIndex": 0 },
+    "reply": {
+      "cardFormats": [
+        {
+          "name": "Default",
+          "icon": "big-circle",
+          "deck": "Mining",
+          "model": "Lapis",
+          "fields": {
+            "Expression": { "value": "{expression}", "overwriteMode": "coalesce" },
+            "Sentence": { "value": "{cloze-prefix}<b>{cloze-body}</b>{cloze-suffix}", "overwriteMode": "coalesce" },
+            "Hint": { "value": "", "overwriteMode": "coalesce" }
+          },
+          "type": "term"
+        }
+      ]
+    }
+  },
   "hd_api_tokenize": {
     "request": { "texts": ["大きい"], "scanLength": 10, "parser": "scanning-parser" },
     "reply": {

@@ -9,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "docs" / "host-contract.md"
 FIXTURES = ROOT / "test" / "fixtures" / "host-contract.json"
 MESSAGE_TYPES = (
-    "hd_api_version", "hd_api_term_entries", "hd_api_kanji_entries", "hd_api_anki_fields", "hd_api_tokenize",
-    "hd_api_dictionaries", "hd_api_dictionary_open", "hd_api_dictionary_read", "hd_api_dictionary_close",
+    "hd_api_version", "hd_api_term_entries", "hd_api_kanji_entries", "hd_api_anki_fields", "hd_api_anki_card_formats",
+    "hd_api_tokenize", "hd_api_dictionaries", "hd_api_dictionary_open", "hd_api_dictionary_read", "hd_api_dictionary_close",
 )
 
 

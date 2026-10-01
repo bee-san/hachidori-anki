@@ -43,6 +43,12 @@ export function defaultRespond(message, host) {
           : [],
       };
     }
+    case "hd_api_anki_card_formats":
+      // One set of card formats, as Hachidori has: profile 0.
+      if (message.profileIndex !== undefined && message.profileIndex !== 0) {
+        return { error: `Invalid input for ankiCardFormats, expected "profileIndex" to be a valid profile index but got ${message.profileIndex}` };
+      }
+      return FIXTURES.hd_api_anki_card_formats.reply;
     case "hd_api_tokenize":
       return {
         results: message.texts.map((text, index) => ({

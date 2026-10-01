@@ -185,6 +185,21 @@ test("lookup endpoints forward to hd_api_* and answer in Yomitan's shapes", asyn
   assert.equal(defaults.fields.length, 2);
   assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_fields", text: "x", entryType: "kanji", markers: ["character"], maxEntries: 0, includeMedia: false });
 
+  // GSM Companion asks for profile 0. Yomitan reads anything but a number as the active profile.
+  const formats = FIXTURES.hd_api_anki_card_formats.reply.cardFormats;
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats"), 200), formats, "Yomitan answers the bare array");
+  assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats" });
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex: 0 }), 200), formats);
+  assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats", profileIndex: 0 });
+  for (const profileIndex of ["0", true, null]) {
+    assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex }), 200), formats);
+    assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats" },
+      `${JSON.stringify(profileIndex)} means the active profile`);
+  }
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex: 1 }), 500),
+    { error: 'Invalid input for ankiCardFormats, expected "profileIndex" to be a valid profile index but got 1' });
+  assert.match((await expectJson(await http.get("/ankiCardFormats"), 405)).error, /POST only/u);
+
   const tokens = await expectJson(await http.post("/tokenize", { text: "大きい", scanLength: 10, parser: "scanning-parser" }), 200);
   assert.ok(Array.isArray(tokens), "tokenize always answers an array");
   assert.deepEqual(tokens[0].content, [[{ text: "大きい", reading: "" }]]);
