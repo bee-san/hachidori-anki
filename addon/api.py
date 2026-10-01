@@ -2,9 +2,9 @@
 """The Yomitan-compatible HTTP API and dictionary downloads of the Hachidori Relay.
 
 Tools that speak to Yomitan's API (backfill-anki-yomitan, scripts, curl) POST
-JSON to /termEntries, /kanjiEntries, /ankiFields, /tokenize, /yomitanVersion and
-/serverVersion. Linked apps list the sharing Hachidori's dictionaries with
-GET /dictionaries and download one with GET /dictionaries/<id>.
+JSON to /termEntries, /kanjiEntries, /ankiFields, /ankiCardFormats, /tokenize,
+/yomitanVersion and /serverVersion. Linked apps list the sharing Hachidori's
+dictionaries with GET /dictionaries and download one with GET /dictionaries/<id>.
 
 Nothing here reads a dictionary. ApiServer answers HTTP; ApiSession is an
 ordinary relay client that lives inside the process (origin relay://yomitan-api)
@@ -312,6 +312,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         "/termEntries": ("POST", "term_entries"),
         "/kanjiEntries": ("POST", "kanji_entries"),
         "/ankiFields": ("POST", "anki_fields"),
+        "/ankiCardFormats": ("POST", "anki_card_formats"),
         "/tokenize": ("POST", "tokenize"),
         "/dictionaries": ("GET", "dictionaries"),
     }
@@ -466,6 +467,17 @@ class ApiHandler(BaseHTTPRequestHandler):
         if not isinstance(response, dict) or not isinstance(response.get("fields"), list):
             raise ApiError(502, "The sharing Hachidori sent a malformed reply.")
         self._send_json(200, response)
+
+    def handle_anki_card_formats(self, body):
+        # Yomitan reads a number as a profile index and anything else as the active profile.
+        profile_index = body.get("profileIndex")
+        numeric = isinstance(profile_index, (int, float)) and not isinstance(profile_index, bool)
+        response = self.api.session().request("hd_api_anki_card_formats", {"profileIndex": profile_index} if numeric else {})
+        formats = response.get("cardFormats") if isinstance(response, dict) else None
+        if not isinstance(formats, list):
+            raise ApiError(502, "The sharing Hachidori sent a malformed reply.")
+        # Yomitan answers the bare array.
+        self._send_json(200, formats)
 
     def handle_tokenize(self, body):
         texts, _ = _strings(body.get("text"), "text")

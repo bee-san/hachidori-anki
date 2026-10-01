@@ -8,7 +8,7 @@ browser with your dictionaries hosts, and your other browsers link to it.
 
 ## Install
 
-1. Download [hachidori-relay.ankiaddon v0.0.4](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.4/hachidori-relay.ankiaddon).
+1. Download [hachidori-relay.ankiaddon v0.0.5](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.5/hachidori-relay.ankiaddon).
 2. Double-click it, or in Anki choose **Tools → Add-ons → Install from file…**.
 3. Restart Anki and keep it open. Hachidori's **Settings → Sharing** will show
    **Sharing through Anki** once the host has dictionaries.
@@ -45,6 +45,7 @@ work unchanged when pointed at `http://127.0.0.1:19633`:
 | `POST /termEntries` | `{"term": string \| string[]}` → term entries, one `{index, ...}` per input |
 | `POST /kanjiEntries` | `{"character": string \| string[]}` → kanji entries |
 | `POST /ankiFields` | `{"text", "type", "markers", "maxEntries", "includeMedia"}` → `{"fields", "dictionaryMedia", "audioMedia"}` |
+| `POST /ankiCardFormats` | `{"profileIndex"}` (optional) → the host's Anki card formats, `[{"name", "icon", "deck", "model", "fields", "type"}]` |
 | `POST /tokenize` | `{"text": string \| string[], "scanLength", "parser"}` → parsed segments |
 
 Bodies and answers follow Kuuuube's `docs/api_paths`; the few divergences are
@@ -127,6 +128,14 @@ described above, on a second port that follows the relay's network switch, with
 a new `yomitan_api_port` setting. The host side of that API is specified in
 [docs/host-contract.md](docs/host-contract.md) and needs a Hachidori release
 that advertises `hoshidicts-api-v1`; the relay behaviour of 0.0.3 is unchanged.
+
+Version 0.0.5 adds Yomitan's `POST /ankiCardFormats`
+([yomitan#2409](https://github.com/yomidevs/yomitan/pull/2409)): the sharing
+Hachidori's Anki Templates as Yomitan card formats, with their deck, note type
+and field markers but never the AnkiConnect address or key. Tools such as GSM
+Companion and Yomine read them instead of asking the user to retype every field.
+A Hachidori without the new request answers it with `500`; the other endpoints
+are unchanged.
 
 These GitHub installs are updated by installing a new `.ankiaddon` file and
 restarting Anki. The stable `hachidori-relay` package ID updates the existing

@@ -2,7 +2,7 @@
   "hello": {
     "kind": "hello",
     "protocol": 1,
-    "version": "hachidori-relay/0.0.4",
+    "version": "hachidori-relay/0.0.5",
     "name": "Hachidori Relay API",
     "capabilities": ["hoshidicts-api-v1"]
   },
@@ -58,6 +58,25 @@
       "dictionaryMedia": [],
       "audioMedia": [
         { "term": "分かる", "reading": "わかる", "mediaType": "audio/mpeg", "content": "AAEC", "ankiFilename": "hachidori_audio_1.mp3" }
+      ]
+    }
+  },
+  "hd_api_anki_card_formats": {
+    "request": { "profileIndex": 0 },
+    "reply": {
+      "cardFormats": [
+        {
+          "name": "Default",
+          "icon": "big-circle",
+          "deck": "Mining",
+          "model": "Lapis",
+          "fields": {
+            "Expression": { "value": "{expression}", "overwriteMode": "coalesce" },
+            "Sentence": { "value": "{cloze-prefix}<b>{cloze-body}</b>{cloze-suffix}", "overwriteMode": "coalesce" },
+            "Hint": { "value": "", "overwriteMode": "coalesce" }
+          },
+          "type": "term"
+        }
       ]
     }
   },

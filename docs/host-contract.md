@@ -61,7 +61,7 @@ The relay's `hello`:
 {
   "kind": "hello",
   "protocol": 1,
-  "version": "hachidori-relay/0.0.4",
+  "version": "hachidori-relay/0.0.5",
   "name": "Hachidori Relay API",
   "capabilities": ["hoshidicts-api-v1"]
 }
@@ -134,6 +134,7 @@ HTTP `500` (Yomitan parity: tools treat it as "no result"). Only
 | `hd_api_term_entries` | `{terms: string[]}` | `{results: [{index, dictionaryEntries, originalTextLength}]}` | `POST /termEntries` |
 | `hd_api_kanji_entries` | `{characters: string[]}` | `{results: [{index, dictionaryEntries}]}` | `POST /kanjiEntries` |
 | `hd_api_anki_fields` | `{text, entryType: "term"\|"kanji", markers: string[], maxEntries, includeMedia}` | `{fields: [...], dictionaryMedia: [...], audioMedia: [...]}` | `POST /ankiFields` |
+| `hd_api_anki_card_formats` | `{profileIndex?: number}` | `{cardFormats: [{name, icon, deck, model, fields, type}]}` | `POST /ankiCardFormats` |
 | `hd_api_tokenize` | `{texts: string[], scanLength, parser}` | `{results: [...]}` | `POST /tokenize` |
 | `hd_api_dictionaries` | `{}` | `{dictionaries: [{id, title, revision, size, fileName}]}` | `GET /dictionaries` |
 | `hd_api_dictionary_open` | `{id}` | `{token, size, fileName}` or `{error, notFound: true}` | `GET /dictionaries/<id>` |
@@ -224,6 +225,48 @@ rendered entry, keyed by marker, with the rendered handlebars text. Media
 entries carry `content` as base64 and an `ankiFilename` that the `fields`
 text refers to (`[sound:...]`, `<img src="...">`). The HTTP answer is this
 object unchanged.
+
+### `hd_api_anki_card_formats`
+
+```json
+{ "profileIndex": 0 }
+```
+
+```json
+{
+  "cardFormats": [
+    {
+      "name": "Default",
+      "icon": "big-circle",
+      "deck": "Mining",
+      "model": "Lapis",
+      "fields": {
+        "Expression": { "value": "{expression}", "overwriteMode": "coalesce" },
+        "Sentence": { "value": "{cloze-prefix}<b>{cloze-body}</b>{cloze-suffix}", "overwriteMode": "coalesce" },
+        "Hint": { "value": "", "overwriteMode": "coalesce" }
+      },
+      "type": "term"
+    }
+  ]
+}
+```
+
+The host's Anki card formats, so a tool can build notes the way the host does
+without the user retyping them: Yomitan's
+[`ankiCardFormats`](https://github.com/yomidevs/yomitan-api/blob/main/docs/api_paths/ankiCardFormats.md).
+One entry per format, in the host's order, with exactly Yomitan's
+`AnkiCardFormat` keys. `fields` maps each note field to its marker template and
+overwrite mode (`coalesce`, `coalesce-new`, `skip`, `append`, `prepend` or
+`overwrite`); every `{marker}` in a `value` is one `hd_api_anki_fields`
+renders. `type` is `term` or `kanji` and `icon` is Yomitan's add-button icon.
+Nothing else leaves the host: no AnkiConnect address or key, tags or duplicate
+settings.
+
+The relay forwards `profileIndex` only when the body gives a number; without
+one the host answers its active profile, as Yomitan reads anything else. A host
+answers `{error}` for an index it does not have, with Yomitan's message:
+`Invalid input for ankiCardFormats, expected "profileIndex" to be a valid profile index but got 1`.
+The HTTP answer is `cardFormats`, a bare array as Yomitan answers.
 
 ### `hd_api_tokenize`
 
@@ -322,7 +365,7 @@ are answered with `{error}`.
 
 Verified against `docs/api_paths/*.md` and Yomitan's `ext/js/comm/yomitan-api.js`.
 
-- `POST /serverVersion` answers the add-on version as a string (`"0.0.4"`),
+- `POST /serverVersion` answers the add-on version as a string (`"0.0.5"`),
   where Yomitan's native-messaging component answers an integer (`1`).
 - `POST /kanjiEntries` additionally accepts an array in `character`, answering
   `[{index, dictionaryEntries}]`; Yomitan accepts a string only.

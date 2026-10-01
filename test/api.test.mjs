@@ -45,8 +45,8 @@ async function expectJson(response, status) {
 test("serverVersion, method and path errors, malformed JSON and CORS preflight need no host", async (t) => {
   const { apiPort } = await server(t);
   const http = api(apiPort);
-  assert.deepEqual(await expectJson(await http.post("/serverVersion"), 200), { version: "0.0.4" });
-  assert.deepEqual(await expectJson(await http.post("/serverVersion", ""), 200), { version: "0.0.4" });
+  assert.deepEqual(await expectJson(await http.post("/serverVersion"), 200), { version: "0.0.5" });
+  assert.deepEqual(await expectJson(await http.post("/serverVersion", ""), 200), { version: "0.0.5" });
   const wrongMethod = await expectJson(await http.get("/serverVersion"), 405);
   assert.match(wrongMethod.error, /POST/u);
   assert.deepEqual(await expectJson(await http.post("/nope"), 404), { error: "unknown path" });
@@ -114,7 +114,7 @@ test("yomitanVersion is 503 without a host, 501 without the capability, and 200 
   assert.equal(host.opens[0].origin, "relay://yomitan-api");
   assert.deepEqual(host.hellos[0].capabilities, [CAPABILITY]);
   assert.equal(host.hellos[0].protocol, 1);
-  assert.match(host.hellos[0].version, /^hachidori-relay\/0\.0\.4$/u);
+  assert.match(host.hellos[0].version, /^hachidori-relay\/0\.0\.5$/u);
   assert.deepEqual(host.requests[0].message, { target: "hoshidicts-offscreen", type: "hd_api_version" });
   // A second request reuses the session.
   await expectJson(await http.post("/yomitanVersion"), 200);
@@ -184,6 +184,21 @@ test("lookup endpoints forward to hd_api_* and answer in Yomitan's shapes", asyn
   const defaults = await expectJson(await http.post("/ankiFields", { text: "x", type: "kanji", markers: ["character"] }), 200);
   assert.equal(defaults.fields.length, 2);
   assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_fields", text: "x", entryType: "kanji", markers: ["character"], maxEntries: 0, includeMedia: false });
+
+  // GSM Companion asks for profile 0. Yomitan reads anything but a number as the active profile.
+  const formats = FIXTURES.hd_api_anki_card_formats.reply.cardFormats;
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats"), 200), formats, "Yomitan answers the bare array");
+  assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats" });
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex: 0 }), 200), formats);
+  assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats", profileIndex: 0 });
+  for (const profileIndex of ["0", true, null]) {
+    assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex }), 200), formats);
+    assert.deepEqual(host.requests.at(-1).message, { target: "hoshidicts-offscreen", type: "hd_api_anki_card_formats" },
+      `${JSON.stringify(profileIndex)} means the active profile`);
+  }
+  assert.deepEqual(await expectJson(await http.post("/ankiCardFormats", { profileIndex: 1 }), 500),
+    { error: 'Invalid input for ankiCardFormats, expected "profileIndex" to be a valid profile index but got 1' });
+  assert.match((await expectJson(await http.get("/ankiCardFormats"), 405)).error, /POST only/u);
 
   const tokens = await expectJson(await http.post("/tokenize", { text: "大きい", scanLength: 10, parser: "scanning-parser" }), 200);
   assert.ok(Array.isArray(tokens), "tokenize always answers an array");
@@ -428,11 +443,11 @@ test("the API follows the host's network switch and returns to this computer whe
   const address = await nonLoopbackAddress(t, host);
   if (address === null) return;
   const remote = api(apiPort, address);
-  assert.deepEqual(await expectJson(await remote.post("/serverVersion"), 200), { version: "0.0.4" });
+  assert.deepEqual(await expectJson(await remote.post("/serverVersion"), 200), { version: "0.0.5" });
   assert.deepEqual(await expectJson(await remote.post("/yomitanVersion"), 200), { version: FIXTURES.hostHello.version });
   assert.deepEqual(await host.network(false), { kind: "network", enabled: false, addresses: [] });
   await assert.rejects(remote.post("/serverVersion"), /ECONNREFUSED|fetch failed/u, "network off refuses the LAN address");
-  assert.deepEqual(await expectJson(await api(apiPort).post("/serverVersion"), 200), { version: "0.0.4" }, "loopback keeps serving");
+  assert.deepEqual(await expectJson(await api(apiPort).post("/serverVersion"), 200), { version: "0.0.5" }, "loopback keeps serving");
   assert.equal((await host.network(true)).enabled, true);
   assert.equal((await remote.post("/serverVersion")).status, 200, "network on serves the LAN address again");
   assert.deepEqual(await expectJson(await remote.post("/yomitanVersion"), 200), { version: FIXTURES.hostHello.version }, "the API session survives the rebind");
