@@ -61,7 +61,7 @@ The relay's `hello`:
 {
   "kind": "hello",
   "protocol": 1,
-  "version": "hachidori-relay/0.0.4",
+  "version": "hachidori-relay/0.0.5",
   "name": "Hachidori Relay API",
   "capabilities": ["hoshidicts-api-v1"]
 }
@@ -365,7 +365,7 @@ are answered with `{error}`.
 
 Verified against `docs/api_paths/*.md` and Yomitan's `ext/js/comm/yomitan-api.js`.
 
-- `POST /serverVersion` answers the add-on version as a string (`"0.0.4"`),
+- `POST /serverVersion` answers the add-on version as a string (`"0.0.5"`),
   where Yomitan's native-messaging component answers an integer (`1`).
 - `POST /kanjiEntries` additionally accepts an array in `character`, answering
   `[{index, dictionaryEntries}]`; Yomitan accepts a string only.
