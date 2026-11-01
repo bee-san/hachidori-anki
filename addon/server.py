@@ -40,7 +40,8 @@ except ImportError:
 DEFAULT_PORT = 8771
 HOST_PATH = "/host"
 LINK_PATH = "/link"
-EXTENSION_ORIGIN_PREFIX = "chrome-extension://"
+# Hachidori in Chrome, and in Firefox.
+EXTENSION_ORIGIN_PREFIXES = ("chrome-extension://", "moz-extension://")
 HOSHIDICTS_ORIGIN = "hoshi://hoshidicts"
 PING_SECONDS = 20
 WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -450,7 +451,7 @@ def refusal(relay, path, headers, peer):
     # one exact ecosystem origin and may only link; ordinary web pages may not.
     # The host is the Hachidori on this computer; other computers only link.
     origin = headers.get("origin", "")
-    extension = origin.startswith(EXTENSION_ORIGIN_PREFIX)
+    extension = origin.startswith(EXTENSION_ORIGIN_PREFIXES)
     if not extension and (path != LINK_PATH or origin != HOSHIDICTS_ORIGIN):
         return "403 Forbidden"
     if path == HOST_PATH and not is_loopback(peer):

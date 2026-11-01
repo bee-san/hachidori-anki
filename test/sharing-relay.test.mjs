@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { startAnkiRelayServer } from "./anki-relay-server.mjs";
-import { EXTENSION_ORIGIN, HOSHIDICTS_ORIGIN, connectClient, untilKind } from "./relay-socket.mjs";
+import { EXTENSION_ORIGIN, FIREFOX_ORIGIN, HOSHIDICTS_ORIGIN, connectClient, untilKind } from "./relay-socket.mjs";
 
 async function server(t) {
   const started = await startAnkiRelayServer({ pingMs: 50 });
@@ -45,6 +45,22 @@ test("clients are refused until a host connects, and a second host is turned awa
   assert.equal(client.status, 101);
   const opened = await untilKind(host, "client-open");
   assert.equal(opened.origin, EXTENSION_ORIGIN);
+});
+
+test("Hachidori for Firefox may host and link like Hachidori for Chrome", async (t) => {
+  const { port } = await server(t);
+  const host = await connectClient(t, port, "/host", FIREFOX_ORIGIN);
+  assert.equal(host.status, 101);
+  assert.deepEqual(await host.json(), listening(port));
+  const chrome = await connectClient(t, port, "/link", EXTENSION_ORIGIN);
+  assert.equal(chrome.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, EXTENSION_ORIGIN);
+  const firefox = await connectClient(t, port, "/link", FIREFOX_ORIGIN);
+  assert.equal(firefox.status, 101);
+  assert.equal((await untilKind(host, "client-open")).origin, FIREFOX_ORIGIN);
+  for (const origin of ["moz-extension:", "https://moz-extension.example", "resource://gre"]) {
+    assert.equal((await connectClient(t, port, "/link", origin)).status, 403, `${origin} is not an extension`);
+  }
 });
 
 test("the Hoshidicts app origin is admitted only on the client endpoint", async (t) => {
