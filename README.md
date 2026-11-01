@@ -8,7 +8,7 @@ browser with your dictionaries hosts, and your other browsers link to it.
 
 ## Install
 
-1. Download [hachidori-relay.ankiaddon v0.0.5](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.5/hachidori-relay.ankiaddon).
+1. Download [hachidori-relay.ankiaddon v0.0.6](https://github.com/bee-san/hachidori-anki/releases/download/v0.0.6/hachidori-relay.ankiaddon).
 2. Double-click it, or in Anki choose **Tools → Add-ons → Install from file…**.
 3. Restart Anki and keep it open. Hachidori's **Settings → Sharing** will show
    **Sharing through Anki** once the host has dictionaries.
@@ -22,7 +22,8 @@ on a trusted home network or Tailscale; there is no password or token.
 
 Native Hoshidicts ecosystem apps link with the shared WebSocket Origin
 `hoshi://hoshidicts`. This exact scheme/host origin is accepted only on `/link`;
-`/host` remains limited to Hachidori Chrome extensions on the same computer.
+`/host` remains limited to Hachidori browser extensions on the same computer
+(`chrome-extension://` in Chrome, `moz-extension://` in Firefox).
 Ordinary web-page origins remain refused.
 
 See Hachidori's [sharing guide](https://github.com/bee-san/hachidori/blob/main/docs/sharing.md)
@@ -136,6 +137,10 @@ and field markers but never the AnkiConnect address or key. Tools such as GSM
 Companion and Yomine read them instead of asking the user to retype every field.
 A Hachidori without the new request answers it with `500`; the other endpoints
 are unchanged.
+
+Version 0.0.6 admits Hachidori for Firefox: the relay accepts the
+`moz-extension://` origin Firefox gives extensions, on `/host` and `/link`, as it
+accepts Chrome's `chrome-extension://`. Nothing else changes.
 
 These GitHub installs are updated by installing a new `.ankiaddon` file and
 restarting Anki. The stable `hachidori-relay` package ID updates the existing

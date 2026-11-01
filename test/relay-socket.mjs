@@ -7,6 +7,8 @@ import { randomBytes } from "node:crypto";
 import { connect } from "node:net";
 
 export const EXTENSION_ORIGIN = "chrome-extension://hachidorirelaytestextensionid";
+// Firefox gives each installation of an extension its own UUID origin.
+export const FIREFOX_ORIGIN = "moz-extension://5a1d4c2e-8f3b-4e6a-9c7d-0b1e2f3a4b5c";
 export const HOSHIDICTS_ORIGIN = "hoshi://hoshidicts";
 
 export function queue() {
