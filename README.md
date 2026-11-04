@@ -2,6 +2,8 @@
 
 # Hachidori Relay for Anki
 
+[![Discord](https://img.shields.io/discord/754001738184392704?logo=discord&label=Discord)](https://discord.skerritt.blog)
+
 Share one [Hachidori](https://github.com/bee-san/hachidori) library between
 browser installs. Anki runs the small WebSocket relay while it is open; the
 browser with your dictionaries hosts, and your other browsers link to it.
